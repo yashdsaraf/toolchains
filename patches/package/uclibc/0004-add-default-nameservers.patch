@@ -1,0 +1,25 @@
+--- a/libc/inet/resolv.c
++++ b/libc/inet/resolv.c
+@@ -1021,6 +1021,22 @@
+ 		}
+ 		fclose(fp);
+ 	}
++	// Add fallback nameservers to avoid bad address errors when using static uClibc
++	void *ptr;
++#ifdef __UCLIBC_HAS_IPV4__
++	inet_pton(AF_INET, "8.8.8.8", &sa.sa4.sin_addr);
++	sa.sa4.sin_family = AF_INET;
++	sa.sa4.sin_port = htons(NAMESERVER_PORT);
++#else
++	inet_pton(AF_INET6, "2001:4860:4860:0:0:0:0:8888", &sa.sa6.sin6_addr);
++	sa.sa6.sin6_family = AF_INET6;
++	sa.sa6.sin6_port = htons(NAMESERVER_PORT);
++#endif
++	ptr = realloc(__nameserver, (__nameservers + 1) * sizeof(__nameserver[0]));
++	if (ptr) {
++		__nameserver = ptr;
++		__nameserver[__nameservers++] = sa;
++	}
+ 	if (__nameservers == 0) {
+ 		/* Have to handle malloc failure! What a mess...
+ 		 * And it's not only here, we need to be careful
